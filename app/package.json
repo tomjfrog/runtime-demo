@@ -1,0 +1,6 @@
+{
+  "name": "runtime-demo-app",
+  "version": "1.0.0",
+  "description": "Basic Node.js app for JFrog Runtime demo",
+  "main": "server.js"
+}
