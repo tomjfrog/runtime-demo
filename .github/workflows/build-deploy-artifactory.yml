@@ -15,10 +15,10 @@ permissions:
   attestations: write
 
 env:
-  DOCKER_REPOSITORY: 'docker-local'
+  DOCKER_REPOSITORY: ${{ vars.JF_PROJECT }}-docker-dev
   IMAGE_NAME: 'runtime-demo-app'
   IMAGE_METADATA_FILE: 'image-metadata'
-  BUILD_NAME: 'runtime-demo-app'
+  BUILD_NAME: 'runtime-demo-app-build'
 
 jobs:
   build-and-push:
