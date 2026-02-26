@@ -6,17 +6,46 @@ This project contains the configuration and tooling for a demo environment runni
 ## AWS Account & Authentication
 - **Account ID:** 925310216015
 - **Auth method:** AWS IAM Identity Center (SSO)
-- **SSO start URL:** https://jfrog-sandbox.awsapps.com/start/#
+- **SSO start URL:** https://d-90670a2202.awsapps.com/start/#
 - **SSO region:** us-east-1
-- **CLI profile:** `AdministratorAccess-925310216015`
-- **SSO session name:** `Runtime Demo`
+- **CLI profile:** See `aws-profile` (changes frequently)
+- **SSO session name:** `RuntimeDemo`
+
+### Profile Configuration
+
+**The AWS profile name changes frequently** (company policy). Do not assume a fixed profile name.
+
+**How to fetch the current profile name:**
+1. **Primary source:** Read `aws-profile` in the project root — it contains the active profile name.
+2. **Fallback:** Read `~/.aws/config` and look for `[profile ...]` sections; the AdministratorAccess profile for account 925310216015 is the one used for EKS.
+
+Commands that use `$(cat aws-profile)` must be run from the project root.
+
+**Using the profile:**
+```bash
+export AWS_PROFILE=$(cat aws-profile)
+```
+
+When the user reports a profile change, update `aws-profile` with the new name. Do not attempt to re-authenticate to AWS unless explicitly asked.
 
 ### Logging In
+SSO sessions expire every **8 hours** (company policy). When your session expires, you must re-authenticate:
 ```
-aws sso login --profile AdministratorAccess-925310216015
+aws sso login --profile $(cat aws-profile)
+```
+If `aws sso login` fails with a session error, re-run the full SSO configuration instead:
+```
+aws configure sso --profile $(cat aws-profile)
+```
+After re-authenticating, also refresh your kubeconfig for kubectl access:
+```
+aws eks update-kubeconfig \
+  --region us-east-2 \
+  --name demo-cluster \
+  --profile $(cat aws-profile)
 ```
 
-> **Note:** The SSO session section in `~/.aws/config` must be `[sso-session Runtime Demo]` (no quotes around the name) to match the `sso_session = Runtime Demo` reference in the profile.
+> **Note:** The SSO session name in `~/.aws/config` must not contain spaces (use `RuntimeDemo` not `Runtime Demo`). If you get "The specified sso-session does not exist", ensure the `[sso-session RuntimeDemo]` section exists and matches `sso_session = RuntimeDemo` in profiles.
 
 ## EKS Cluster
 - **Cluster name:** `demo-cluster`
@@ -57,7 +86,7 @@ aws sso login --profile AdministratorAccess-925310216015
 eksctl create cluster \
   --name demo-cluster \
   --region us-east-2 \
-  --profile AdministratorAccess-925310216015 \
+  --profile $(cat aws-profile) \
   --nodegroup-name demo-nodes \
   --node-type t3.medium \
   --nodes 2 \
@@ -67,7 +96,7 @@ eksctl create cluster \
 ### Known Issues
 - CloudWatch logging is not enabled. Enable with:
   ```
-  eksctl utils update-cluster-logging --enable-types=all --region=us-east-2 --cluster=demo-cluster --profile AdministratorAccess-925310216015
+  eksctl utils update-cluster-logging --enable-types=all --region=us-east-2 --cluster=demo-cluster --profile $(cat aws-profile)
   ```
 - OIDC is not enabled on the cluster, so vpc-cni addon IAM permissions are using the node role rather than pod identity. If fine-grained pod IAM is needed later, enable OIDC or configure pod identity associations.
 
@@ -75,6 +104,63 @@ eksctl create cluster \
 - `aws` CLI v2
 - `eksctl`
 - `kubectl`
+- `helm` (required for JFrog Runtime)
+
+## JFrog Runtime
+
+### Helm
+
+Helm is required for installing JFrog Runtime sensors. Ensure it is installed and up to date:
+
+```bash
+helm version
+brew upgrade helm   # if installed via Homebrew
+```
+
+### Installation
+
+The registration token is **secret** — do not export it, commit it, or persist it anywhere. Fetch it from the Platform UI each time.
+
+1. In the JFrog Platform, go to **Administration → Runtime → Cluster Management**
+2. Click **Install Runtime** to open the wizard
+3. Provide cluster name and namespace
+4. Select **Controller only** or **Controller and Sensors**
+5. Copy the command and replace the token with `$JF_RUNTIME_REGISTRATION_TOKEN` (set it in your shell, never in a file)
+
+```bash
+kubectl create ns jfrog-runtime
+
+helm repo add jfrog https://charts.jfrog.io
+helm repo update jfrog
+
+# Set token in shell only; do not persist
+export JF_RUNTIME_REGISTRATION_TOKEN="<paste-from-Platform-UI>"
+
+helm upgrade --install jf-sensors jfrog/runtime-sensors \
+  --namespace=jfrog-runtime \
+  --set sensors.enabled=true \
+  --set clusterName=tomj-lab-cluster \
+  --set jfrogUrl=danielw.jfrog.io:443 \
+  --set registrationToken="$JF_RUNTIME_REGISTRATION_TOKEN"
+```
+
+Prerequisites: `kubectl` and `helm` with cluster access; an ingress controller (Nginx preferred) if needed.
+
+### Installed
+
+JFrog Runtime sensors are installed in the cluster:
+
+- **Namespace:** `jfrog-runtime`
+- **Helm release:** `jf-sensors` (runtime-sensors chart)
+- **Cluster name (in Platform):** `tomj-lab-cluster`
+- **JFrog URL:** `danielw.jfrog.io:443`
+
+**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev-local/runtime-demo-app`; deployment pulls from there.
+
+Verify sensors are running:
+```bash
+kubectl get pods -n jfrog-runtime
+```
 
 ## Interacting with the Cluster
 
@@ -86,7 +172,7 @@ After logging in via SSO, configure kubectl to use the EKS cluster:
 aws eks update-kubeconfig \
   --region us-east-2 \
   --name demo-cluster \
-  --profile AdministratorAccess-925310216015
+  --profile $(cat aws-profile)
 ```
 
 This adds the context `arn:aws:eks:us-east-2:925310216015:cluster/demo-cluster` to `~/.kube/config`. Run this after a new SSO session or on a new machine.
@@ -94,7 +180,7 @@ This adds the context `arn:aws:eks:us-east-2:925310216015:cluster/demo-cluster` 
 Set the AWS profile for kubectl (required for EKS auth):
 
 ```
-export AWS_PROFILE=AdministratorAccess-925310216015
+export AWS_PROFILE=$(cat aws-profile)
 ```
 
 Verify connectivity:
@@ -120,29 +206,32 @@ A basic Node.js application used for the JFrog Runtime Integrity demo. The goal 
   - `service.yaml` — ClusterIP service (port 80 → 3000)
 - **`Dockerfile`** — Uses `node:20-alpine`; copies app and exposes port 3000
 - **`DEPLOY.md`** — Step-by-step deploy instructions
+- **`docs/IMAGE-PULL-TROUBLESHOOTING.md`** — Triage steps for image pull failures
 - **`deploy.sh`** — Script to apply manifests (`kubectl apply -f k8s/`)
+- **`scripts/create-artifactory-secret.sh`** — Creates `artifactory-registry` imagePullSecrets (requires `JFROG_ACCESS_TOKEN`)
 
 ### Configuring kubectl for EKS
 ```
 aws eks update-kubeconfig \
   --region us-east-2 \
   --name demo-cluster \
-  --profile AdministratorAccess-925310216015
+  --profile $(cat aws-profile)
 ```
 
 ### Artifactory Integration
 
 The deployment pulls images from Artifactory. Before deploying:
 
-1. **Update the image path** in `k8s/deployment.yaml`: replace `your-artifactory` with your `JF_DOCKER_REGISTRY` value (e.g. `company.jfrog.io`).
-2. **Create the cluster secret** using a long-lived JFrog Access Token (create in Artifactory: Administration → Identity and Access → Access Tokens):
+1. **Update the image path** in `k8s/deployment.yaml` if needed (registry: `danielw.jfrog.io`).
+2. **Create the cluster secret** using a long-lived JFrog Access Token (create in Artifactory: Administration → Identity and Access → Access Tokens). Namespace must exist first; set `JFROG_ACCESS_TOKEN`, then:
 
    ```bash
-   kubectl apply -f k8s/namespace.yaml
-   echo -n "<jfrog-access-token>" | kubectl create secret docker-registry artifactory-registry \
-     --docker-server=<your-registry>.jfrog.io \
-     --docker-username=<artifactory-username> \
-     --docker-password-stdin \
+   kubectl apply -f k8s/namespace.yaml   # required before secret
+   export JFROG_ACCESS_TOKEN="<your-token>"
+   kubectl create secret docker-registry artifactory-registry \
+     --docker-server=danielw.jfrog.io \
+     --docker-username=tomj@jfrog.com \
+     --docker-password="$JFROG_ACCESS_TOKEN" \
      -n runtime-demo
    ```
 

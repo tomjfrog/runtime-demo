@@ -25,25 +25,21 @@ kubectl get nodes
 
 ## 2. Artifactory Setup (for CI-built images)
 
-The manifests are configured to pull from Artifactory at `your-artifactory.jfrog.io/docker-local/runtime-demo-app:latest`. Update `k8s/deployment.yaml` and replace `your-artifactory` with your `JF_DOCKER_REGISTRY` value (e.g. `company.jfrog.io`).
+The manifests are configured to pull from Artifactory at `danielw.jfrog.io`.
 
 Create the image pull secret using a **JFrog Access Token** (long-lived). Create the token in Artifactory: **Administration → Identity and Access → Access Tokens** — use a token with appropriate scope (e.g. "Read" for pulling images).
 
+**Order matters:** Create the namespace first (the secret must be created in an existing namespace), then create the secret:
+
 ```bash
+kubectl apply -f k8s/namespace.yaml
+
+export JFROG_ACCESS_TOKEN="<your-jfrog-access-token>"
+
 kubectl create secret docker-registry artifactory-registry \
-  --docker-server=<your-registry>.jfrog.io \
-  --docker-username=<artifactory-username> \
-  --docker-password=<jfrog-access-token> \
-  -n runtime-demo
-```
-
-To avoid exposing the token in shell history, use `--docker-password-stdin`:
-
-```bash
-echo -n "<jfrog-access-token>" | kubectl create secret docker-registry artifactory-registry \
-  --docker-server=<your-registry>.jfrog.io \
-  --docker-username=<artifactory-username> \
-  --docker-password-stdin \
+  --docker-server=danielw.jfrog.io \
+  --docker-username=tomj@jfrog.com \
+  --docker-password="$JFROG_ACCESS_TOKEN" \
   -n runtime-demo
 ```
 
@@ -55,22 +51,26 @@ If not using the GitHub Actions workflow, build and push manually:
 
 ```bash
 docker build -t runtime-demo-app:1.0.0 .
-docker tag runtime-demo-app:1.0.0 <your-registry>.jfrog.io/docker-local/runtime-demo-app:latest
-docker push <your-registry>.jfrog.io/docker-local/runtime-demo-app:latest
+docker tag runtime-demo-app:1.0.0 danielw.jfrog.io/docker-local/runtime-demo-app:latest
+docker push danielw.jfrog.io/docker-local/runtime-demo-app:latest
 ```
 
 ## 4. Deploy to the Cluster
 
-Apply in order: namespace first (required for the secret), then create the secret (step 2), then deployment and service:
+**Required order:** namespace → secret → deployment + service. The namespace and `artifactory-registry` secret must exist before applying the deployment.
 
 ```bash
+# 1. Namespace (if not already created in step 2)
 kubectl apply -f k8s/namespace.yaml
-# Create artifactory-registry secret (see step 2), then:
+
+# 2. Secret (see step 2; must run after namespace exists)
+
+# 3. Deployment and service
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 ```
 
-Or apply manifests only (secret must exist):
+Or apply all manifests at once (namespace + deployment + service; secret must already exist):
 
 ```bash
 kubectl apply -f k8s/

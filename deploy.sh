@@ -2,7 +2,11 @@
 set -e
 
 # Deploy Runtime Demo app to EKS
-# Prerequisites: kubectl configured for demo-cluster, image pushed to registry, deployment.yaml updated with image path
+# Prerequisites:
+#   - kubectl configured for demo-cluster
+#   - namespace runtime-demo exists (kubectl apply -f k8s/namespace.yaml)
+#   - artifactory-registry secret exists in runtime-demo (see DEPLOY.md step 2)
+#   - Image pushed to Artifactory, deployment.yaml updated with registry URL
 
 echo "Deploying Runtime Demo app to EKS..."
 kubectl apply -f k8s/
