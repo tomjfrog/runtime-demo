@@ -19,8 +19,7 @@ spec:
         - name: artifactory-registry
       containers:
         - name: app
-          # Replace your-artifactory with your JF_DOCKER_REGISTRY value (e.g. company.jfrog.io)
-          image: your-artifactory.jfrog.io/docker-local/runtime-demo-app:latest
+          image: danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
