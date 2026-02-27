@@ -1,6 +1,5 @@
 # Builds the runtime-demo-app Docker image and pushes to JFrog Artifactory.
-# Source of truth: danielw.jfrog.io
-# Requires GitHub vars: JF_URL, JF_PROJECT, JF_DOCKER_REGISTRY (set to danielw.jfrog.io)
+# Requires GitHub vars per AGENTS.md
 # Uses JFrog OIDC integration (oidc-provider-name: github-oidc-integration, oidc-audience: jfrog-github)
 
 name: 'Build and Deploy to Artifactory'
@@ -21,8 +20,6 @@ permissions:
   attestations: write
 
 env:
-  DOCKER_REPOSITORY: 'runtimedemo-docker-dev-local'
-  IMAGE_NAME: 'runtime-demo-app'
   IMAGE_TAG: ${{ github.event.inputs.image_tag || github.run_number }}
   IMAGE_METADATA_FILE: 'image-metadata'
   BUILD_NAME: 'runtime-demo-app-build'
@@ -63,17 +60,17 @@ jobs:
             BUILD_ID=${{ env.IMAGE_TAG }}
           push: true
           tags: |
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
 
       - name: Create Image Metadata File
         run: |
-          echo "${{ vars.JF_DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}@${{ steps.build-and-push.outputs.digest }}" > ${{ env.IMAGE_METADATA_FILE }}
+          echo "${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.IMAGE_NAME }}:${{ env.IMAGE_TAG }}@${{ steps.build-and-push.outputs.digest }}" > ${{ env.IMAGE_METADATA_FILE }}
 
       - name: Docker Build Info
         run: |
           jf rt build-docker-create \
-            ${{ env.DOCKER_REPOSITORY }} \
+            ${{ vars.DOCKER_REPOSITORY }} \
             --build-name=${{ env.BUILD_NAME }} \
             --build-number=${{ github.run_number }} \
             --image-file ${{ env.IMAGE_METADATA_FILE }}

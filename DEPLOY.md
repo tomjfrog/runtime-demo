@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - AWS CLI v2, `eksctl`, and `kubectl` installed
-- AWS SSO session active (run `aws sso login --profile AdministratorAccess-925310216015`)
+- AWS SSO session active (run `aws sso login --profile AdministratorAccess-YOUR_ACCOUNT_ID`)
 
 ## 1. Configure kubectl for EKS
 
@@ -13,13 +13,13 @@ Ensure kubectl can authenticate to your `demo-cluster`:
 aws eks update-kubeconfig \
   --region us-east-2 \
   --name demo-cluster \
-  --profile AdministratorAccess-925310216015
+  --profile AdministratorAccess-YOUR_ACCOUNT_ID
 ```
 
 Verify connectivity:
 
 ```bash
-export AWS_PROFILE=AdministratorAccess-925310216015
+export AWS_PROFILE=AdministratorAccess-YOUR_ACCOUNT_ID
 kubectl get nodes
 ```
 

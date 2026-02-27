@@ -4,7 +4,7 @@
 This project contains the configuration and tooling for a demo environment running on AWS EKS.
 
 ## AWS Account & Authentication
-- **Account ID:** 925310216015
+- **Account ID:** YOUR_ACCOUNT_ID
 - **Auth method:** AWS IAM Identity Center (SSO)
 - **SSO start URL:** https://d-90670a2202.awsapps.com/start/#
 - **SSO region:** us-east-1
@@ -17,7 +17,7 @@ This project contains the configuration and tooling for a demo environment runni
 
 **How to fetch the current profile name:**
 1. **Primary source:** Read `aws-profile` in the project root — it contains the active profile name.
-2. **Fallback:** Read `~/.aws/config` and look for `[profile ...]` sections; the AdministratorAccess profile for account 925310216015 is the one used for EKS.
+2. **Fallback:** Read `~/.aws/config` and look for `[profile ...]` sections; the AdministratorAccess profile for account YOUR_ACCOUNT_ID is the one used for EKS.
 
 Commands that use `$(cat aws-profile)` must be run from the project root.
 
@@ -175,7 +175,7 @@ aws eks update-kubeconfig \
   --profile $(cat aws-profile)
 ```
 
-This adds the context `arn:aws:eks:us-east-2:925310216015:cluster/demo-cluster` to `~/.kube/config`. Run this after a new SSO session or on a new machine.
+This adds the context `arn:aws:eks:us-east-2:YOUR_ACCOUNT_ID:cluster/demo-cluster` to `~/.kube/config`. Run this after a new SSO session or on a new machine.
 
 Set the AWS profile for kubectl (required for EKS auth):
 
@@ -248,10 +248,25 @@ If not using GitHub Actions: build locally, push to Artifactory, then apply mani
 **`.github/workflows/build-deploy-artifactory.yml`** — Builds the Docker image and pushes to Artifactory.
 
 - **Triggers:** `workflow_dispatch` (manual), `push` to `main`
-- **Required GitHub vars:** `JF_URL`, `JF_PROJECT`, `JF_DOCKER_REGISTRY`
 - **Auth:** JFrog OIDC (`oidc-provider-name: github-oidc-integration`, `oidc-audience: jfrog-github`)
 - **Image tags:** `docker-local/runtime-demo-app:<run_number>` and `:latest`
 - **Build info:** Published to JFrog via `jf rt build-docker-create` and `jf rt build-publish`
+
+### Repository Variables
+
+Configure these in **Settings → Secrets and variables → Actions → Variables**:
+
+| Variable | Used by | Purpose |
+|----------|---------|---------|
+| `AWS_REGION` | integrity-demo-* | AWS region for EKS (e.g. `us-east-2`) |
+| `DOCKER_REPOSITORY` | build-deploy-artifactory, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev-local`) |
+| `EKS_CLUSTER_NAME` | integrity-demo-* | EKS cluster name (e.g. `demo-cluster`) |
+| `IMAGE_NAME` | build-deploy-artifactory, integrity-demo-trigger | Docker image name (e.g. `runtime-demo-app`) |
+| `JF_DOCKER_REGISTRY` | build-deploy-artifactory, integrity-demo-trigger | JFrog registry host (e.g. `danielw.jfrog.io`) |
+| `JF_PROJECT` | build-deploy-artifactory, integrity-demo-trigger | JFrog project key for OIDC |
+| `JF_URL` | build-deploy-artifactory, integrity-demo-trigger | JFrog Platform URL (e.g. `https://danielw.jfrog.io`) |
+| `K8S_DEPLOYMENT` | integrity-demo-* | Kubernetes deployment name (e.g. `runtime-demo-app`) |
+| `K8S_NAMESPACE` | integrity-demo-* | Kubernetes namespace (e.g. `runtime-demo`) |
 
 ### Planned
 
@@ -320,3 +335,20 @@ Ensure the cluster runs the same image as Artifactory:
 ### Why Node Affinity Matters
 
 With multiple nodes, a restarted pod may land on a different node that does not have the image cached. That node would pull the new image, so no violation would occur. Node affinity ensures the pod always schedules on the same node (e.g. `ip-192-168-63-72.us-east-2.compute.internal`), so with `IfNotPresent` it reuses the cached old image after you push a new one to Artifactory.
+
+### GitHub Actions (separate workflows per stage)
+
+| Workflow | Purpose |
+|----------|---------|
+| `integrity-demo-reset.yml` | Set `imagePullPolicy: Always`, redeploy — cluster in sync with Artifactory |
+| `integrity-demo-trigger.yml` | Set `IfNotPresent`, build+push new image, redeploy — triggers violation |
+| `integrity-demo-clear.yml` | Set `imagePullPolicy: Always`, redeploy — clears violation |
+
+**Required GitHub secrets** (all integrity workflows; SSO temporary credentials):
+- `AWS_ACCESS_KEY_ID` — from SSO credential export
+- `AWS_SECRET_ACCESS_KEY` — from SSO credential export
+- `AWS_SESSION_TOKEN` — from SSO credential export (required for temporary credentials)
+
+**Required Repository variables** — see [Repository Variables](#repository-variables) above. Integrity workflows use: `AWS_REGION`, `EKS_CLUSTER_NAME`, `K8S_NAMESPACE`, `K8S_DEPLOYMENT`; trigger also uses `JF_URL`, `JF_PROJECT`, `JF_DOCKER_REGISTRY`, `DOCKER_REPOSITORY`, `IMAGE_NAME`.
+
+**IAM permissions** for the access key: `eks:DescribeCluster` (and `eks:ListClusters` if needed). The IAM user must be able to authenticate to the EKS cluster.
