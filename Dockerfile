@@ -5,7 +5,7 @@ WORKDIR /app
 COPY app/package.json app/server.js ./
 
 # Unique build ID (7-digit hex) - ensures every build has a unique digest
-RUN echo "$(openssl rand -hex 4 | cut -c1-7)" > /app/build_id.txt
+RUN echo "$(od -A n -t x4 -N 4 /dev/urandom | tr -d ' \n' | cut -c1-7)" > /app/build_id.txt
 
 EXPOSE 3000
 
