@@ -50,13 +50,13 @@ The secret name `artifactory-registry` must match `imagePullSecrets` in the depl
 If not using the GitHub Actions workflow, build and push manually:
 
 ```bash
-# Unique tag (7-char hex) - use same value for BUILD_ID and tag so you know which build 'latest' points to
-BUILD_TAG=$(openssl rand -hex 4 | cut -c1-7)
-docker build --build-arg BUILD_ID=$BUILD_TAG \
+# Unique tag (7-char hex) - use same value for UNIQUE_VALUE and tag so you know which build 'latest' points to
+UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
+docker build --build-arg UNIQUE_VALUE=$UNIQUE \
   -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest \
-  -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$BUILD_TAG .
+  -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE .
 docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
-docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$BUILD_TAG
+docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE
 ```
 
 ## 4. Deploy to the Cluster

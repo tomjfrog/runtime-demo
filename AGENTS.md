@@ -249,7 +249,7 @@ If not using GitHub Actions: build locally, push to Artifactory, then apply mani
 
 - **Triggers:** `workflow_dispatch` (manual), `push` to `main`
 - **Auth:** JFrog OIDC (`oidc-provider-name: github-oidc-integration`, `oidc-audience: jfrog-github`)
-- **Image tags:** `docker-local/runtime-demo-app:<run_number>` and `:latest`
+- **Image tags:** `:<unique_hex>` and `:latest` (unique value is random 7-char hex, same for both workflows)
 - **Build info:** Published to JFrog via `jf rt build-docker-create` and `jf rt build-publish`
 
 ### Repository Variables
@@ -310,10 +310,10 @@ Ensure the cluster runs the same image as Artifactory:
 3. Verify the pod is running and has pulled the image (it will be cached on the pinned node)
 4. Build and push a **new** image with the same tag (`:latest`):
    ```bash
-   BUILD_TAG=$(openssl rand -hex 4 | cut -c1-7)
-   docker build --build-arg BUILD_ID=$BUILD_TAG \
+   UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
+   docker build --build-arg UNIQUE_VALUE=$UNIQUE \
      -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest \
-     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$BUILD_TAG .
+     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE .
    jf docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
    ```
 5. Redeploy (pod will use cached image on the same node):

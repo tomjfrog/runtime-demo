@@ -43,6 +43,10 @@ jobs:
             -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
           kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
 
+      - name: Generate unique value
+        id: unique
+        run: echo "value=$(openssl rand -hex 4 | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Setup JFrog (OIDC)
         id: jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
@@ -68,10 +72,11 @@ jobs:
           context: .
           file: ./Dockerfile
           build-args: |
-            BUILD_ID=${{ github.run_number }}
+            UNIQUE_VALUE=${{ steps.unique.outputs.value }}
           push: true
           tags: |
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY || 'runtimedemo-docker-dev-local' }}/${{ vars.IMAGE_NAME || 'runtime-demo-app' }}:latest
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
 
       - name: Redeploy (uses cached image)
         run: |
