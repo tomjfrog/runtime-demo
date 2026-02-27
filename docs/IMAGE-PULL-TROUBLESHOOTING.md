@@ -17,7 +17,7 @@ Common errors:
 ```bash
 # Try pulling locally (requires docker login first)
 docker login danielw.jfrog.io
-docker pull danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
+docker pull danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
 ```
 
 If local pull fails, the image isn't in the registry or the path/tag is wrong.
@@ -40,7 +40,7 @@ kubectl get deployment runtime-demo-app -n runtime-demo -o jsonpath='{.spec.temp
 
 Compare with what's in `k8s/deployment.yaml`. Ensure:
 - Registry host is correct
-- Repository path matches (e.g. `runtimedemo-docker-dev-local` vs `runtimedemo-docker-dev`)
+- Repository path matches (e.g. `runtimedemo-docker-dev`)
 - Tag exists (e.g. `:latest`, `:2`)
 
 ## 5. Recreate the secret (if auth is suspect)
@@ -58,8 +58,4 @@ kubectl rollout restart deployment runtime-demo-app -n runtime-demo
 
 ## 6. Check for repo path mismatch
 
-Artifactory repos often differ by suffix:
-- `runtimedemo-docker-dev` — virtual or remote
-- `runtimedemo-docker-dev-local` — local repo
-
-Confirm the correct repo name in Artifactory (Administration → Repositories).
+Confirm the correct repo name in Artifactory (Administration → Repositories). This project uses `runtimedemo-docker-dev`.

@@ -155,7 +155,7 @@ JFrog Runtime sensors are installed in the cluster:
 - **Cluster name (in Platform):** `tomj-lab-cluster`
 - **JFrog URL:** `danielw.jfrog.io:443`
 
-**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev-local/runtime-demo-app`; deployment pulls from there.
+**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev/runtime-demo-app`; deployment pulls from there.
 
 Verify sensors are running:
 ```bash
@@ -259,7 +259,7 @@ Configure these in **Settings → Secrets and variables → Actions → Variable
 | Variable | Used by | Purpose |
 |----------|---------|---------|
 | `AWS_REGION` | integrity-demo-* | AWS region for EKS (e.g. `us-east-2`) |
-| `DOCKER_REPOSITORY` | build-deploy-artifactory, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev-local`) |
+| `DOCKER_REPOSITORY` | build-deploy-artifactory, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev`) |
 | `EKS_CLUSTER_NAME` | integrity-demo-* | EKS cluster name (e.g. `demo-cluster`) |
 | `IMAGE_NAME` | build-deploy-artifactory, integrity-demo-trigger | Docker image name (e.g. `runtime-demo-app`) |
 | `JF_DOCKER_REGISTRY` | build-deploy-artifactory, integrity-demo-trigger | JFrog registry host (e.g. `danielw.jfrog.io`) |
@@ -312,13 +312,15 @@ Ensure the cluster runs the same image as Artifactory:
    ```bash
    UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
    docker build --build-arg UNIQUE_VALUE=$UNIQUE \
-     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest \
-     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE .
-   jf docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
+     -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest \
+     -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE .
+   jf docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
    ```
-5. Redeploy (pod will use cached image on the same node):
+5. Redeploy (delete and reapply so pod uses cached image on the same node; `rollout restart` may pull fresh):
    ```bash
-   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
+   kubectl delete deployment runtime-demo-app -n runtime-demo
+   sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' k8s/deployment.yaml | kubectl apply -f -
+   kubectl rollout status deployment/runtime-demo-app -n runtime-demo
    ```
 6. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
 

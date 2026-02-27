@@ -28,7 +28,7 @@ spec:
         - name: artifactory-registry
       containers:
         - name: app
-          image: danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
+          image: danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

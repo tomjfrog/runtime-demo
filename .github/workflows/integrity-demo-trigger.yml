@@ -78,7 +78,8 @@ jobs:
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
 
-      - name: Redeploy (uses cached image)
+      - name: Redeploy (delete and reapply — uses cached image with IfNotPresent)
         run: |
-          kubectl rollout restart deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
+          kubectl delete deployment ${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }} --ignore-not-found
+          sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' k8s/deployment.yaml | kubectl apply -f -
           kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}

@@ -53,10 +53,10 @@ If not using the GitHub Actions workflow, build and push manually:
 # Unique tag (7-char hex) - use same value for UNIQUE_VALUE and tag so you know which build 'latest' points to
 UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
 docker build --build-arg UNIQUE_VALUE=$UNIQUE \
-  -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest \
-  -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE .
-docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
-docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$UNIQUE
+  -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest \
+  -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE .
+docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
+docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE
 ```
 
 ## 4. Deploy to the Cluster
