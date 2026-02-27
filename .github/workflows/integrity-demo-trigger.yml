@@ -71,7 +71,7 @@ jobs:
             BUILD_ID=${{ github.run_number }}
           push: true
           tags: |
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY || 'runtimedemo-docker-dev-local' }}/${{ vars.IMAGE_NAME || 'runtime-demo-app' }}:latest
 
       - name: Redeploy (uses cached image)
         run: |
