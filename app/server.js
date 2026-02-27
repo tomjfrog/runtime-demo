@@ -14,5 +14,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}....`);
+  console.log(`....and you've been pwnd by a man in the middle attack!`);
 });
