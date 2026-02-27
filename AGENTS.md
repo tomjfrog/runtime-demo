@@ -256,3 +256,67 @@ If not using GitHub Actions: build locally, push to Artifactory, then apply mani
 ### Planned
 
 - Add deploy-to-EKS job to the workflow
+
+## JFrog Runtime Integrity Violation Demo
+
+This workflow demonstrates how JFrog Runtime detects an **integrity violation** when the image running in the cluster does not match the image in Artifactory for the same tag. The scenario relies on Kubernetes `imagePullPolicy: IfNotPresent` and node affinity so the pod reuses a cached image instead of pulling the updated one.
+
+### Prerequisites
+
+- Deployment uses `imagePullPolicy: IfNotPresent` (not `Always`)
+- Node affinity pins the pod to a specific node (e.g. `ip-192-168-63-72.us-east-2.compute.internal`) so redeploys land on the same node that has the cached image
+- Image pull secret `artifactory-registry` exists in namespace `runtime-demo`
+
+### Workflow Diagram
+
+[`docs/integrity-violation-workflow.mmd`](docs/integrity-violation-workflow.mmd) — Mermaid flowchart for Setup → Trigger Violation → Clear Violation.
+
+### Step-by-Step Instructions
+
+#### 1. Reset environment (optional — start from clean state)
+
+Ensure the cluster runs the same image as Artifactory:
+
+1. In `k8s/deployment.yaml`, set `imagePullPolicy: Always`
+2. Apply and redeploy:
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
+   ```
+3. Wait for rollout: `kubectl rollout status deployment/runtime-demo-app -n runtime-demo`
+
+#### 2. Trigger the integrity violation
+
+1. In `k8s/deployment.yaml`, set `imagePullPolicy: IfNotPresent`
+2. Apply the deployment:
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+   ```
+3. Verify the pod is running and has pulled the image (it will be cached on the pinned node)
+4. Build and push a **new** image with the same tag (`:latest`):
+   ```bash
+   BUILD_TAG=$(openssl rand -hex 4 | cut -c1-7)
+   docker build --build-arg BUILD_ID=$BUILD_TAG \
+     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest \
+     -t danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:$BUILD_TAG .
+   jf docker push danielw.jfrog.io/runtimedemo-docker-dev-local/runtime-demo-app:latest
+   ```
+5. Redeploy (pod will use cached image on the same node):
+   ```bash
+   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
+   ```
+6. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
+
+#### 3. Clear the violation (reset)
+
+1. In `k8s/deployment.yaml`, set `imagePullPolicy: Always`
+2. Apply and redeploy:
+   ```bash
+   kubectl apply -f k8s/deployment.yaml
+   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
+   ```
+3. The pod pulls the latest image from Artifactory; the integrity violation clears
+
+### Why Node Affinity Matters
+
+With multiple nodes, a restarted pod may land on a different node that does not have the image cached. That node would pull the new image, so no violation would occur. Node affinity ensures the pod always schedules on the same node (e.g. `ip-192-168-63-72.us-east-2.compute.internal`), so with `IfNotPresent` it reuses the cached old image after you push a new one to Artifactory.

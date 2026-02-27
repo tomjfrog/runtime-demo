@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph Setup["1. Setup (Reset)"]
+        A1[Set imagePullPolicy: Always] --> A2[Apply deployment]
+        A2 --> A3[kubectl rollout restart]
+        A3 --> A4[Pod pulls latest from Artifactory]
+        A4 --> A5[Cluster in integrity]
+    end
+
+    subgraph Trigger["2. Trigger Violation"]
+        B1[Set imagePullPolicy: IfNotPresent] --> B2[Apply deployment]
+        B2 --> B3[Pod pulls image, caches on node]
+        B3 --> B4[Build new image with same tag]
+        B4 --> B5[Push to Artifactory :latest]
+        B5 --> B6[kubectl rollout restart]
+        B6 --> B7[Pod lands on same node via affinity]
+        B7 --> B8[Uses cached OLD image - no pull]
+        B8 --> B9[JFrog Runtime: Integrity Violation]
+    end
+
+    subgraph Reset["3. Clear Violation"]
+        C1[Set imagePullPolicy: Always] --> C2[kubectl rollout restart]
+        C2 --> C3[Pod pulls fresh from Artifactory]
+        C3 --> C4[Cluster in integrity]
+    end
+
+    A5 --> B1
+    B9 --> C1
+    C4 --> B1

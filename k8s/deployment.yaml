@@ -15,6 +15,15 @@ spec:
       labels:
         app: runtime-demo-app
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - ip-192-168-63-72.us-east-2.compute.internal
       imagePullSecrets:
         - name: artifactory-registry
       containers:

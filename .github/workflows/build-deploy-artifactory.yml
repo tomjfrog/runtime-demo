@@ -59,6 +59,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          build-args: |
+            BUILD_ID=${{ env.IMAGE_TAG }}
           push: true
           tags: |
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
