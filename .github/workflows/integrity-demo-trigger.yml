@@ -13,6 +13,8 @@ env:
   K8S_NAMESPACE: runtime-demo
   DOCKER_REPOSITORY: runtimedemo-integrity-demo-app-docker-dev
   IMAGE_NAME: integrity-demo-app
+  IMAGE_METADATA_FILE: 'image-metadata'
+  BUILD_NAME: 'integrity-demo-app-build'
 
 jobs:
   trigger:
@@ -78,6 +80,22 @@ jobs:
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Create Image Metadata File
+        run: |
+          echo "${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}@${{ steps.build-and-push.outputs.digest }}" > ${{ env.IMAGE_METADATA_FILE }}
+    
+      - name: Docker Build Info
+        run: |
+          jf rt build-docker-create \
+          ${{ env.DOCKER_REPOSITORY }} \
+          --build-name=${{ env.BUILD_NAME }} \
+          --build-number=${{ github.run_number }} \
+          --image-file ${{ env.IMAGE_METADATA_FILE }}
+    
+      - name: Publish Build Info
+        run: |
+          jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
+    
       - name: Redeploy (uses cached image)
         run: |
           kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}
