@@ -46,4 +46,3 @@ jobs:
           kubectl patch deployment ${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }} \
             --type='json' \
             -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
-          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}

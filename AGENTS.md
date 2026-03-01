@@ -155,7 +155,7 @@ JFrog Runtime sensors are installed in the cluster:
 - **Cluster name (in Platform):** `tomj-lab-cluster`
 - **JFrog URL:** `danielw.jfrog.io:443`
 
-**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev/integrity-demo-app`; deployment pulls from there.
+**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app`; deployment pulls from there.
 
 Verify sensors are running:
 ```bash
@@ -267,7 +267,7 @@ Configure these in **Settings → Secrets and variables → Actions → Variable
 | Variable | Used by | Purpose |
 |----------|---------|---------|
 | `AWS_REGION` | integrity-demo-* | AWS region for EKS (e.g. `us-east-2`) |
-| `DOCKER_REPOSITORY` | build-deploy-artifactory*, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev`) |
+| `DOCKER_REPOSITORY` | build-deploy-artifactory-insecure (vars) | Artifactory repository path; integrity/insecure use env vars |
 | `EKS_CLUSTER_NAME` | integrity-demo-* | EKS cluster name (e.g. `demo-cluster`) |
 | `IMAGE_NAME` | build-deploy-artifactory, integrity-demo-trigger | Docker image name (e.g. `integrity-demo-app`). insecure-demo-app uses hardcoded name. |
 | `JF_DOCKER_REGISTRY` | build-deploy-artifactory*, integrity-demo-trigger | JFrog registry host (e.g. `danielw.jfrog.io`) |
@@ -322,9 +322,9 @@ Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeplo
    ```bash
    UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
    docker build -f integrity-demo-app/Dockerfile --build-arg UNIQUE_VALUE=$UNIQUE \
-     -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest \
-     -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
-   jf docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
+     -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest \
+     -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
+   jf docker push danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest
    ```
 3. Redeploy (pod will use cached image on the same node):
    ```bash

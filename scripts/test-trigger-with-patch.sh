@@ -26,10 +26,10 @@ echo "=== Step 2: Build and push NEW image ==="
 UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
 echo "Building with UNIQUE_VALUE=$UNIQUE"
 docker build -f integrity-demo-app/Dockerfile --build-arg UNIQUE_VALUE=$UNIQUE \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
-docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
-docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE
+  -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest \
+  -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
+docker push danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest
+docker push danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:$UNIQUE
 echo "Pushed UNIQUE_VALUE: $UNIQUE"
 
 echo ""

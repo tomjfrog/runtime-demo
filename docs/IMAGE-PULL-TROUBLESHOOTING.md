@@ -17,7 +17,7 @@ Common errors:
 ```bash
 # Try pulling locally (requires docker login first)
 docker login danielw.jfrog.io
-docker pull danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
+docker pull danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest
 ```
 
 If local pull fails, the image isn't in the registry or the path/tag is wrong.
@@ -40,7 +40,7 @@ kubectl get deployment integrity-demo-app -n runtime-demo -o jsonpath='{.spec.te
 
 Compare with what's in `k8s/integrity-demo-app/deployment.yaml`. Ensure:
 - Registry host is correct
-- Repository path matches (e.g. `runtimedemo-docker-dev`)
+- Repository path matches (e.g. `runtimedemo-integrity-demo-app-docker-dev`)
 - Tag exists (e.g. `:latest`, `:2`)
 
 ## 5. Recreate the secret (if auth is suspect)
@@ -58,4 +58,4 @@ kubectl rollout restart deployment integrity-demo-app -n runtime-demo
 
 ## 6. Check for repo path mismatch
 
-Confirm the correct repo name in Artifactory (Administration → Repositories). This project uses `runtimedemo-docker-dev`.
+Confirm the correct repo name in Artifactory (Administration → Repositories). This project uses `runtimedemo-integrity-demo-app-docker-dev` for integrity-demo-app and `runtimedemo-insecure-demo-app-docker-dev` for insecure-demo-app.

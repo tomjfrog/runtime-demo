@@ -53,10 +53,10 @@ If not using the GitHub Actions workflow, build and push manually:
 # Unique tag (7-char hex) - use same value for UNIQUE_VALUE and tag so you know which build 'latest' points to
 UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
 docker build -f integrity-demo-app/Dockerfile --build-arg UNIQUE_VALUE=$UNIQUE \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
-docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
-docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE
+  -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest \
+  -t danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
+docker push danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:latest
+docker push danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integrity-demo-app:$UNIQUE
 ```
 
 ## 4. Deploy to the Cluster
