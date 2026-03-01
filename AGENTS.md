@@ -300,15 +300,17 @@ Ensure the cluster runs the same image as Artifactory:
    ```
 3. Wait for rollout: `kubectl rollout status deployment/runtime-demo-app -n runtime-demo`
 
-#### 2. Trigger the integrity violation
+#### 2. Setup (run once after Reset, before Trigger)
 
-1. In `k8s/deployment.yaml`, set `imagePullPolicy: IfNotPresent`
-2. Apply the deployment:
-   ```bash
-   kubectl apply -f k8s/deployment.yaml
-   ```
-3. Verify the pod is running and has pulled the image (it will be cached on the pinned node)
-4. Build and push a **new** image with the same tag (`:latest`):
+Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeploy:
+
+- **GitHub Actions:** Run `integrity-demo-setup.yml`
+- **Manual:** In `k8s/deployment.yaml`, set `imagePullPolicy: IfNotPresent`, then `kubectl apply -f k8s/deployment.yaml` and `kubectl rollout restart deployment/runtime-demo-app -n runtime-demo`
+
+#### 3. Trigger the integrity violation
+
+1. Verify the pod is running and has pulled the image (it will be cached on the pinned node)
+2. Build and push a **new** image with the same tag (`:latest`):
    ```bash
    UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
    docker build --build-arg UNIQUE_VALUE=$UNIQUE \
@@ -316,15 +318,14 @@ Ensure the cluster runs the same image as Artifactory:
      -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE .
    jf docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
    ```
-5. Redeploy (delete and reapply so pod uses cached image on the same node; `rollout restart` may pull fresh):
+3. Redeploy (pod will use cached image on the same node):
    ```bash
-   kubectl delete deployment runtime-demo-app -n runtime-demo
-   sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' k8s/deployment.yaml | kubectl apply -f -
+   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
    kubectl rollout status deployment/runtime-demo-app -n runtime-demo
    ```
-6. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
+4. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
 
-#### 3. Clear the violation (reset)
+#### 4. Clear the violation
 
 1. In `k8s/deployment.yaml`, set `imagePullPolicy: Always`
 2. Apply and redeploy:
@@ -343,8 +344,11 @@ With multiple nodes, a restarted pod may land on a different node that does not 
 | Workflow | Purpose |
 |----------|---------|
 | `integrity-demo-reset.yml` | Set `imagePullPolicy: Always`, redeploy — cluster in sync with Artifactory |
-| `integrity-demo-trigger.yml` | Set `IfNotPresent`, build+push new image, redeploy — triggers violation |
+| `integrity-demo-setup.yml` | Set `imagePullPolicy: IfNotPresent` — run once after Reset, before Trigger |
+| `integrity-demo-trigger.yml` | Build+push new image, redeploy — triggers violation (requires Setup first) |
 | `integrity-demo-clear.yml` | Set `imagePullPolicy: Always`, redeploy — clears violation |
+
+**Demo flow:** Reset → Setup → Trigger → Clear. (Setup only needed once per Reset.)
 
 **Required GitHub secrets** (all integrity workflows; SSO temporary credentials):
 - `AWS_ACCESS_KEY_ID` — from SSO credential export

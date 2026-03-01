@@ -1,4 +1,5 @@
-# Integrity Demo — Trigger: set IfNotPresent, build+push new image, redeploy (triggers violation).
+# Integrity Demo — Trigger: build+push new image, redeploy (triggers violation).
+# Prerequisite: Run Setup (or ensure imagePullPolicy: IfNotPresent) before first Trigger.
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (SSO); vars per AGENTS.md
 # See docs/integrity-violation-workflow.mmd and AGENTS.md
 
@@ -36,13 +37,6 @@ jobs:
             --region ${{ vars.AWS_REGION }} \
             --name ${{ vars.EKS_CLUSTER_NAME }}
 
-      - name: Set IfNotPresent
-        run: |
-          kubectl patch deployment ${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }} \
-            --type='json' \
-            -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
-          kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
-
       - name: Generate unique value
         id: unique
         run: echo "value=$(openssl rand -hex 4 | cut -c1-7)" >> $GITHUB_OUTPUT
@@ -78,8 +72,7 @@ jobs:
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
 
-      - name: Redeploy (delete and reapply — uses cached image with IfNotPresent)
+      - name: Redeploy (uses cached image)
         run: |
-          kubectl delete deployment ${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }} --ignore-not-found
-          sed 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/' k8s/deployment.yaml | kubectl apply -f -
+          kubectl rollout restart deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
           kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
