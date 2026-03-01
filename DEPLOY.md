@@ -52,11 +52,11 @@ If not using the GitHub Actions workflow, build and push manually:
 ```bash
 # Unique tag (7-char hex) - use same value for UNIQUE_VALUE and tag so you know which build 'latest' points to
 UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
-docker build --build-arg UNIQUE_VALUE=$UNIQUE \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest \
-  -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE .
-docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
-docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE
+docker build -f integrity-demo-app/Dockerfile --build-arg UNIQUE_VALUE=$UNIQUE \
+  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest \
+  -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
+docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
+docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE
 ```
 
 ## 4. Deploy to the Cluster
@@ -70,8 +70,7 @@ kubectl apply -f k8s/namespace.yaml
 # 2. Secret (see step 2; must run after namespace exists)
 
 # 3. Deployment and service
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/integrity-demo-app/
 ```
 
 Or apply all manifests at once (namespace + deployment + service; secret must already exist):
@@ -90,11 +89,11 @@ kubectl get svc -n runtime-demo
 Check pod logs:
 
 ```bash
-kubectl logs -n runtime-demo -l app=runtime-demo-app -f
+kubectl logs -n runtime-demo -l app=integrity-demo-app -f
 ```
 
 Test from inside the cluster (e.g., from another pod):
 
 ```bash
-kubectl run curl-test --rm -it --restart=Never --image=curlimages/curl -- curl http://runtime-demo-app.runtime-demo.svc.cluster.local/health
+kubectl run curl-test --rm -it --restart=Never --image=curlimages/curl -- curl http://integrity-demo-app.runtime-demo.svc.cluster.local/health
 ```

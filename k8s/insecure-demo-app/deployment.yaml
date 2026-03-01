@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: runtime-demo-app
+  name: insecure-demo-app
   namespace: runtime-demo
   labels:
-    app: runtime-demo-app
+    app: insecure-demo-app
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: runtime-demo-app
+      app: insecure-demo-app
   template:
     metadata:
       labels:
-        app: runtime-demo-app
+        app: insecure-demo-app
     spec:
       affinity:
         nodeAffinity:
@@ -28,7 +28,7 @@ spec:
         - name: artifactory-registry
       containers:
         - name: app
-          image: danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
+          image: danielw.jfrog.io/runtimedemo-docker-dev/insecure-demo-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

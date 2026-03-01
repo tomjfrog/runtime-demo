@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY app/package.json app/server.js ./
+COPY package.json server.js ./
 
 # Unique value - pass via --build-arg to ensure every build has a unique digest (busts cache)
 # Tag with both :latest and :<UNIQUE_VALUE> so you know which build latest points to.

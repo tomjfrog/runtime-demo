@@ -1,0 +1,83 @@
+# Builds the insecure-demo-app Docker image and pushes to JFrog Artifactory.
+# Contains vulnerable glob@11.0.0 (CVE-2025-64756) — Artifactory security scan will detect it.
+# Requires GitHub vars per AGENTS.md
+# Uses JFrog OIDC integration (oidc-provider-name: github-oidc-integration, oidc-audience: jfrog-github)
+
+name: 'Build and Deploy insecure-demo-app to Artifactory'
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'insecure-demo-app/**'
+
+permissions:
+  id-token: write
+  security-events: write
+  attestations: write
+
+env:
+  IMAGE_METADATA_FILE: 'image-metadata-insecure'
+  BUILD_NAME: 'insecure-demo-app-build'
+  DOCKER_REPOSITORY: ${{ vars.DOCKER_REPOSITORY }}
+  IMAGE_NAME: 'insecure-demo-app'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate unique value
+        id: unique
+        run: echo "value=$(openssl rand -hex 4 | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Setup JFrog CLI
+        id: jfrog-cli
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+          JF_PROJECT: ${{ vars.JF_PROJECT }}
+        with:
+          version: 'latest'
+          oidc-provider-name: 'github-oidc-integration'
+          oidc-audience: 'jfrog-github'
+          disable-auto-build-publish: true
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.JF_DOCKER_REGISTRY }}
+          username: ${{ steps.jfrog-cli.outputs.oidc-user }}
+          password: ${{ steps.jfrog-cli.outputs.oidc-token }}
+
+      - name: Build and push
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./insecure-demo-app
+          file: ./insecure-demo-app/Dockerfile
+          build-args: |
+            UNIQUE_VALUE=${{ steps.unique.outputs.value }}
+          push: true
+          tags: |
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Create Image Metadata File
+        run: |
+          echo "${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}@${{ steps.build-and-push.outputs.digest }}" > ${{ env.IMAGE_METADATA_FILE }}
+
+      - name: Docker Build Info
+        run: |
+          jf rt build-docker-create \
+            ${{ env.DOCKER_REPOSITORY }} \
+            --build-name=${{ env.BUILD_NAME }} \
+            --build-number=${{ github.run_number }} \
+            --image-file ${{ env.IMAGE_METADATA_FILE }}
+
+      - name: Publish Build Info
+        run: |
+          jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}

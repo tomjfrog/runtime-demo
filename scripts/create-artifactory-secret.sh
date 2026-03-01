@@ -19,4 +19,4 @@ kubectl create secret docker-registry artifactory-registry \
   -n runtime-demo
 
 echo "Secret created. Restarting deployment..."
-kubectl rollout restart deployment runtime-demo-app -n runtime-demo
+kubectl rollout restart deployment integrity-demo-app -n runtime-demo

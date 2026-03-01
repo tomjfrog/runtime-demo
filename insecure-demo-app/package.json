@@ -1,0 +1,11 @@
+{
+  "name": "insecure-demo-app",
+  "version": "1.0.0",
+  "description": "Demo app with vulnerable glob dependency (CVE-2025-64756) for JFrog security scan demo",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.21.0",
+    "lodash": "^4.17.21",
+    "glob": "11.0.0"
+  }
+}

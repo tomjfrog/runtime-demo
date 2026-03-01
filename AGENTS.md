@@ -155,7 +155,7 @@ JFrog Runtime sensors are installed in the cluster:
 - **Cluster name (in Platform):** `tomj-lab-cluster`
 - **JFrog URL:** `danielw.jfrog.io:443`
 
-**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev/runtime-demo-app`; deployment pulls from there.
+**Registry source of truth:** `danielw.jfrog.io` — CI pushes to `runtimedemo-docker-dev/integrity-demo-app`; deployment pulls from there.
 
 Verify sensors are running:
 ```bash
@@ -194,17 +194,23 @@ kubectl get pods -A
 
 A basic Node.js application used for the JFrog Runtime Integrity demo. The goal is to build a CI/CD workflow that pushes a "good" image to Artifactory and deploys it to EKS.
 
-**End-to-end flow:** GitHub Actions builds the image → pushes to Artifactory (`docker-local/runtime-demo-app`) → cluster pulls via `imagePullSecrets` (JFrog Access Token) → deployment runs the image.
+**End-to-end flow:** GitHub Actions builds the image → pushes to Artifactory (`docker-local/integrity-demo-app`) → cluster pulls via `imagePullSecrets` (JFrog Access Token) → deployment runs the image.
 
 ### Project Structure
-- **`app/`** — Node.js application
+- **`integrity-demo-app/`** — Node.js application for integrity demo
   - `server.js` — HTTP server on port 3000; `/` returns greeting, `/health` and `/healthz` return JSON health status
   - `package.json` — Minimal config, no external dependencies
+  - `Dockerfile` — Uses `node:20-alpine`; copies app and exposes port 3000
+- **`insecure-demo-app/`** — Node.js app with vulnerable glob@11.0.0 (CVE-2025-64756) for security scan demo
+  - `server.js` — Express server; `/files` uses `glob -c` (exploitable path); `/health`, `/healthz`
+  - `package.json` — express, lodash, glob@11.0.0
+  - `Dockerfile` — Same pattern as integrity-demo-app; creates malicious filename for PoC
 - **`k8s/`** — Kubernetes manifests
   - `namespace.yaml` — `runtime-demo` namespace
-  - `deployment.yaml` — Deployment pulling from Artifactory (`<registry>/docker-local/runtime-demo-app:latest`); uses `imagePullSecrets: artifactory-registry` (authenticated via JFrog Access Token)
-  - `service.yaml` — ClusterIP service (port 80 → 3000)
-- **`Dockerfile`** — Uses `node:20-alpine`; copies app and exposes port 3000
+  - `integrity-demo-app/deployment.yaml` — Deployment for integrity-demo-app
+  - `integrity-demo-app/service.yaml` — ClusterIP service for integrity-demo-app
+  - `insecure-demo-app/deployment.yaml` — Deployment for insecure-demo-app
+  - `insecure-demo-app/service.yaml` — ClusterIP service for insecure-demo-app
 - **`DEPLOY.md`** — Step-by-step deploy instructions
 - **`docs/IMAGE-PULL-TROUBLESHOOTING.md`** — Triage steps for image pull failures
 - **`deploy.sh`** — Script to apply manifests (`kubectl apply -f k8s/`)
@@ -222,7 +228,7 @@ aws eks update-kubeconfig \
 
 The deployment pulls images from Artifactory. Before deploying:
 
-1. **Update the image path** in `k8s/deployment.yaml` if needed (registry: `danielw.jfrog.io`).
+1. **Update the image path** in `k8s/integrity-demo-app/deployment.yaml` if needed (registry: `danielw.jfrog.io`).
 2. **Create the cluster secret** using a long-lived JFrog Access Token (create in Artifactory: Administration → Identity and Access → Access Tokens). Namespace must exist first; set `JFROG_ACCESS_TOKEN`, then:
 
    ```bash
@@ -245,9 +251,11 @@ If not using GitHub Actions: build locally, push to Artifactory, then apply mani
 
 ### GitHub Actions
 
-**`.github/workflows/build-deploy-artifactory.yml`** — Builds the Docker image and pushes to Artifactory.
+**`.github/workflows/build-deploy-artifactory.yml`** — Builds integrity-demo-app and pushes to Artifactory.
 
-- **Triggers:** `workflow_dispatch` (manual), `push` to `main`
+**`.github/workflows/build-deploy-artifactory-insecure-demo-app.yml`** — Builds insecure-demo-app and pushes to Artifactory. Contains glob@11.0.0 (CVE-2025-64756); Artifactory security scan will detect the vulnerability. See [GHSA-5j98-mcp5-4vw2](https://github.com/isaacs/node-glob/security/advisories/GHSA-5j98-mcp5-4vw2).
+
+- **Triggers:** `workflow_dispatch` (manual), `push` to `main` (insecure-demo-app: only when `insecure-demo-app/**` changes)
 - **Auth:** JFrog OIDC (`oidc-provider-name: github-oidc-integration`, `oidc-audience: jfrog-github`)
 - **Image tags:** `:<unique_hex>` and `:latest` (unique value is random 7-char hex, same for both workflows)
 - **Build info:** Published to JFrog via `jf rt build-docker-create` and `jf rt build-publish`
@@ -259,13 +267,13 @@ Configure these in **Settings → Secrets and variables → Actions → Variable
 | Variable | Used by | Purpose |
 |----------|---------|---------|
 | `AWS_REGION` | integrity-demo-* | AWS region for EKS (e.g. `us-east-2`) |
-| `DOCKER_REPOSITORY` | build-deploy-artifactory, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev`) |
+| `DOCKER_REPOSITORY` | build-deploy-artifactory*, integrity-demo-trigger | Artifactory repository path (e.g. `runtimedemo-docker-dev`) |
 | `EKS_CLUSTER_NAME` | integrity-demo-* | EKS cluster name (e.g. `demo-cluster`) |
-| `IMAGE_NAME` | build-deploy-artifactory, integrity-demo-trigger | Docker image name (e.g. `runtime-demo-app`) |
-| `JF_DOCKER_REGISTRY` | build-deploy-artifactory, integrity-demo-trigger | JFrog registry host (e.g. `danielw.jfrog.io`) |
-| `JF_PROJECT` | build-deploy-artifactory, integrity-demo-trigger | JFrog project key for OIDC |
-| `JF_URL` | build-deploy-artifactory, integrity-demo-trigger | JFrog Platform URL (e.g. `https://danielw.jfrog.io`) |
-| `K8S_DEPLOYMENT` | integrity-demo-* | Kubernetes deployment name (e.g. `runtime-demo-app`) |
+| `IMAGE_NAME` | build-deploy-artifactory, integrity-demo-trigger | Docker image name (e.g. `integrity-demo-app`). insecure-demo-app uses hardcoded name. |
+| `JF_DOCKER_REGISTRY` | build-deploy-artifactory*, integrity-demo-trigger | JFrog registry host (e.g. `danielw.jfrog.io`) |
+| `JF_PROJECT` | build-deploy-artifactory*, integrity-demo-trigger | JFrog project key for OIDC |
+| `JF_URL` | build-deploy-artifactory*, integrity-demo-trigger | JFrog Platform URL (e.g. `https://danielw.jfrog.io`) |
+| `K8S_DEPLOYMENT` | integrity-demo-* | Kubernetes deployment name (e.g. `integrity-demo-app`) |
 | `K8S_NAMESPACE` | integrity-demo-* | Kubernetes namespace (e.g. `runtime-demo`) |
 
 ### Planned
@@ -292,20 +300,20 @@ This workflow demonstrates how JFrog Runtime detects an **integrity violation** 
 
 Ensure the cluster runs the same image as Artifactory:
 
-1. In `k8s/deployment.yaml`, set `imagePullPolicy: Always`
+1. In `k8s/integrity-demo-app/deployment.yaml`, set `imagePullPolicy: Always`
 2. Apply and redeploy:
    ```bash
-   kubectl apply -f k8s/deployment.yaml
-   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
+   kubectl apply -f k8s/integrity-demo-app/
+   kubectl rollout restart deployment/integrity-demo-app -n runtime-demo
    ```
-3. Wait for rollout: `kubectl rollout status deployment/runtime-demo-app -n runtime-demo`
+3. Wait for rollout: `kubectl rollout status deployment/integrity-demo-app -n runtime-demo`
 
 #### 2. Setup (run after every Sync, before Trigger)
 
 Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeploy. Required before each Trigger because Sync resets to `Always`.
 
 - **GitHub Actions:** Run `integrity-demo-setup.yml`
-- **Manual:** In `k8s/deployment.yaml`, set `imagePullPolicy: IfNotPresent`, then `kubectl apply -f k8s/deployment.yaml` and `kubectl rollout restart deployment/runtime-demo-app -n runtime-demo`
+- **Manual:** In `k8s/integrity-demo-app/deployment.yaml`, set `imagePullPolicy: IfNotPresent`, then `kubectl apply -f k8s/integrity-demo-app/` and `kubectl rollout restart deployment/integrity-demo-app -n runtime-demo`
 
 #### 3. Trigger the integrity violation
 
@@ -313,15 +321,15 @@ Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeplo
 2. Build and push a **new** image with the same tag (`:latest`):
    ```bash
    UNIQUE=$(openssl rand -hex 4 | cut -c1-7)
-   docker build --build-arg UNIQUE_VALUE=$UNIQUE \
-     -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest \
-     -t danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:$UNIQUE .
-   jf docker push danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
+   docker build -f integrity-demo-app/Dockerfile --build-arg UNIQUE_VALUE=$UNIQUE \
+     -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest \
+     -t danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:$UNIQUE ./integrity-demo-app
+   jf docker push danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
    ```
 3. Redeploy (pod will use cached image on the same node):
    ```bash
-   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
-   kubectl rollout status deployment/runtime-demo-app -n runtime-demo
+   kubectl rollout restart deployment/integrity-demo-app -n runtime-demo
+   kubectl rollout status deployment/integrity-demo-app -n runtime-demo
    ```
 4. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
 

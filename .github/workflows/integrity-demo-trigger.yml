@@ -63,8 +63,8 @@ jobs:
       - name: Build and push new image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./integrity-demo-app
+          file: ./integrity-demo-app/Dockerfile
           build-args: |
             UNIQUE_VALUE=${{ steps.unique.outputs.value }}
           push: true

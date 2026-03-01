@@ -3,7 +3,7 @@
 ## 1. Get the exact error
 
 ```bash
-kubectl describe pod -n runtime-demo -l app=runtime-demo-app | grep -A 20 "Events:"
+kubectl describe pod -n runtime-demo -l app=integrity-demo-app | grep -A 20 "Events:"
 ```
 
 Common errors:
@@ -17,7 +17,7 @@ Common errors:
 ```bash
 # Try pulling locally (requires docker login first)
 docker login danielw.jfrog.io
-docker pull danielw.jfrog.io/runtimedemo-docker-dev/runtime-demo-app:latest
+docker pull danielw.jfrog.io/runtimedemo-docker-dev/integrity-demo-app:latest
 ```
 
 If local pull fails, the image isn't in the registry or the path/tag is wrong.
@@ -35,10 +35,10 @@ kubectl describe secret artifactory-registry -n runtime-demo
 ## 4. Verify deployment image matches registry
 
 ```bash
-kubectl get deployment runtime-demo-app -n runtime-demo -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl get deployment integrity-demo-app -n runtime-demo -o jsonpath='{.spec.template.spec.containers[0].image}'
 ```
 
-Compare with what's in `k8s/deployment.yaml`. Ensure:
+Compare with what's in `k8s/integrity-demo-app/deployment.yaml`. Ensure:
 - Registry host is correct
 - Repository path matches (e.g. `runtimedemo-docker-dev`)
 - Tag exists (e.g. `:latest`, `:2`)
@@ -53,7 +53,7 @@ kubectl create secret docker-registry artifactory-registry \
   --docker-username=tomj@jfrog.com \
   --docker-password="$JFROG_ACCESS_TOKEN" \
   -n runtime-demo
-kubectl rollout restart deployment runtime-demo-app -n runtime-demo
+kubectl rollout restart deployment integrity-demo-app -n runtime-demo
 ```
 
 ## 6. Check for repo path mismatch
