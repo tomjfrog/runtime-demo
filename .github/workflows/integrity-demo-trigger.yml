@@ -82,3 +82,16 @@ jobs:
         run: |
           kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}
           kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }} --timeout=180s
+
+      - name: Verify integrity violation (hosted vs running)
+        run: |
+          K8S=$(kubectl exec -n ${{ env.K8S_NAMESPACE }} deployment/${{ env.K8S_DEPLOYMENT }} -- cat /app/build_id.txt 2>/dev/null | tr -d '\n')
+          ARTIFACTORY="${{ steps.unique.outputs.value }}"
+          echo "Running image (cached): $K8S"
+          echo "Hosted image (latest):  $ARTIFACTORY"
+          if [ "$K8S" = "$ARTIFACTORY" ]; then
+            echo "MATCH — pod pulled fresh. No integrity violation. Demo may not work as expected."
+            exit 1
+          else
+            echo "MISMATCH — integrity violation! Pod used cached image. Demo succeeded."
+          fi
