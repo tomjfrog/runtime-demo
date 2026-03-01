@@ -300,9 +300,9 @@ Ensure the cluster runs the same image as Artifactory:
    ```
 3. Wait for rollout: `kubectl rollout status deployment/runtime-demo-app -n runtime-demo`
 
-#### 2. Setup (run once after Reset, before Trigger)
+#### 2. Setup (run after every Sync, before Trigger)
 
-Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeploy:
+Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeploy. Required before each Trigger because Sync resets to `Always`.
 
 - **GitHub Actions:** Run `integrity-demo-setup.yml`
 - **Manual:** In `k8s/deployment.yaml`, set `imagePullPolicy: IfNotPresent`, then `kubectl apply -f k8s/deployment.yaml` and `kubectl rollout restart deployment/runtime-demo-app -n runtime-demo`
@@ -338,10 +338,10 @@ With multiple nodes, a restarted pod may land on a different node that does not 
 | Workflow | Purpose |
 |----------|---------|
 | `integrity-demo-reset.yml` | Sync with Artifactory / Reset — set `imagePullPolicy: Always`, redeploy. Use at start (optional) or after Trigger to clear violation |
-| `integrity-demo-setup.yml` | Set `imagePullPolicy: IfNotPresent` — run once after Sync, before Trigger |
+| `integrity-demo-setup.yml` | Set `imagePullPolicy: IfNotPresent` — run after every Sync, before Trigger |
 | `integrity-demo-trigger.yml` | Build+push new image, redeploy — triggers violation (requires Setup first) |
 
-**Demo flow:** Sync (optional) → Setup → Trigger → Sync. (Same Sync workflow for start and clear.)
+**Demo flow:** Sync (optional) → Setup → Trigger → Sync → Setup → Trigger → … (Setup required before each Trigger; Sync resets to `Always`.)
 
 **Required GitHub secrets** (all integrity workflows; SSO temporary credentials):
 - `AWS_ACCESS_KEY_ID` — from SSO credential export
