@@ -1,4 +1,4 @@
-# Integrity Demo — Setup: set imagePullPolicy IfNotPresent (run once before Trigger).
+# Integrity Demo — Setup: set imagePullPolicy IfNotPresent (run after Sync, before Trigger).
 # Run after Reset; required before Trigger can create an integrity violation.
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (SSO); vars per AGENTS.md
 # See docs/integrity-violation-workflow.mmd and AGENTS.md
@@ -7,6 +7,10 @@ name: 'Integrity Demo — Setup'
 
 on:
   workflow_dispatch:
+
+env:
+  K8S_DEPLOYMENT: integrity-demo-app
+  K8S_NAMESPACE: runtime-demo
 
 jobs:
   setup:
@@ -36,7 +40,7 @@ jobs:
 
       - name: Set IfNotPresent
         run: |
-          kubectl patch deployment ${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }} \
+          kubectl patch deployment ${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }} \
             --type='json' \
             -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
-          kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}

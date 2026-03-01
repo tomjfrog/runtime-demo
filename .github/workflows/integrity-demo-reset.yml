@@ -8,6 +8,10 @@ name: 'Integrity Demo — Sync with Artifactory / Reset'
 on:
   workflow_dispatch:
 
+env:
+  K8S_DEPLOYMENT: integrity-demo-app
+  K8S_NAMESPACE: runtime-demo
+
 jobs:
   reset:
     runs-on: ubuntu-latest
@@ -36,8 +40,8 @@ jobs:
 
       - name: Set Always, redeploy
         run: |
-          kubectl patch deployment ${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }} \
+          kubectl patch deployment ${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }} \
             --type='json' \
             -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "Always"}]'
-          kubectl rollout restart deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
-          kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
+          kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}

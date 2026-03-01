@@ -8,6 +8,12 @@ name: 'Integrity Demo — Trigger Violation'
 on:
   workflow_dispatch:
 
+env:
+  K8S_DEPLOYMENT: integrity-demo-app
+  K8S_NAMESPACE: runtime-demo
+  DOCKER_REPOSITORY: runtimedemo-integrity-demo-app-docker-dev
+  IMAGE_NAME: integrity-demo-app
+
 jobs:
   trigger:
     runs-on: ubuntu-latest
@@ -63,16 +69,16 @@ jobs:
       - name: Build and push new image
         uses: docker/build-push-action@v6
         with:
-          context: ./integrity-demo-app
-          file: ./integrity-demo-app/Dockerfile
+          context: ${{ github.workspace }}/integrity-demo-app
+          file: ${{ github.workspace }}/integrity-demo-app/Dockerfile
           build-args: |
             UNIQUE_VALUE=${{ steps.unique.outputs.value }}
           push: true
           tags: |
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.IMAGE_NAME }}:latest
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
+            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Redeploy (uses cached image)
         run: |
-          kubectl rollout restart deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
-          kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT }} -n ${{ vars.K8S_NAMESPACE }}
+          kubectl rollout restart deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}
+          kubectl rollout status deployment/${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }}
