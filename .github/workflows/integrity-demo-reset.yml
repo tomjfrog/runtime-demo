@@ -3,7 +3,7 @@
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (SSO); vars per AGENTS.md
 # See docs/integrity-violation-workflow.mmd and AGENTS.md
 
-name: 'Integrity Demo — Sync with Artifactory / Reset'
+name: 'Integrity Demo — 3. Sync with Artifactory / Reset'
 
 on:
   workflow_dispatch:

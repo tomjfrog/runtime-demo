@@ -3,7 +3,7 @@
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (SSO); vars per AGENTS.md
 # See docs/integrity-violation-workflow.mmd and AGENTS.md
 
-name: 'Integrity Demo — Trigger Violation'
+name: 'Integrity Demo — 2. Trigger Violation'
 
 on:
   workflow_dispatch:
