@@ -284,11 +284,11 @@ This workflow demonstrates how JFrog Runtime detects an **integrity violation** 
 
 ### Workflow Diagram
 
-[`docs/integrity-violation-workflow.mmd`](docs/integrity-violation-workflow.mmd) — Mermaid flowchart for Setup → Trigger Violation → Clear Violation.
+[`docs/integrity-violation-workflow.mmd`](docs/integrity-violation-workflow.mmd) — Mermaid flowchart for Sync → Setup → Trigger → Sync.
 
 ### Step-by-Step Instructions
 
-#### 1. Reset environment (optional — start from clean state)
+#### 1. Sync with Artifactory (optional — start from clean state)
 
 Ensure the cluster runs the same image as Artifactory:
 
@@ -325,15 +325,9 @@ Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeplo
    ```
 4. JFrog Runtime will report an **integrity violation** because the running digest no longer matches Artifactory’s digest for `:latest`
 
-#### 4. Clear the violation
+#### 4. Sync with Artifactory (clear the violation)
 
-1. In `k8s/deployment.yaml`, set `imagePullPolicy: Always`
-2. Apply and redeploy:
-   ```bash
-   kubectl apply -f k8s/deployment.yaml
-   kubectl rollout restart deployment/runtime-demo-app -n runtime-demo
-   ```
-3. The pod pulls the latest image from Artifactory; the integrity violation clears
+Same as step 1. Run the Sync workflow or manually set `imagePullPolicy: Always`, apply, and redeploy. The pod pulls the latest image from Artifactory; the integrity violation clears.
 
 ### Why Node Affinity Matters
 
@@ -343,12 +337,11 @@ With multiple nodes, a restarted pod may land on a different node that does not 
 
 | Workflow | Purpose |
 |----------|---------|
-| `integrity-demo-reset.yml` | Set `imagePullPolicy: Always`, redeploy — cluster in sync with Artifactory |
-| `integrity-demo-setup.yml` | Set `imagePullPolicy: IfNotPresent` — run once after Reset, before Trigger |
+| `integrity-demo-reset.yml` | Sync with Artifactory / Reset — set `imagePullPolicy: Always`, redeploy. Use at start (optional) or after Trigger to clear violation |
+| `integrity-demo-setup.yml` | Set `imagePullPolicy: IfNotPresent` — run once after Sync, before Trigger |
 | `integrity-demo-trigger.yml` | Build+push new image, redeploy — triggers violation (requires Setup first) |
-| `integrity-demo-clear.yml` | Set `imagePullPolicy: Always`, redeploy — clears violation |
 
-**Demo flow:** Reset → Setup → Trigger → Clear. (Setup only needed once per Reset.)
+**Demo flow:** Sync (optional) → Setup → Trigger → Sync. (Same Sync workflow for start and clear.)
 
 **Required GitHub secrets** (all integrity workflows; SSO temporary credentials):
 - `AWS_ACCESS_KEY_ID` — from SSO credential export

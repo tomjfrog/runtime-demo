@@ -1,5 +1,5 @@
 flowchart TB
-    subgraph Reset["1. Reset"]
+    subgraph Sync1["1. Sync with Artifactory (optional)"]
         A1[Set imagePullPolicy: Always] --> A2[kubectl rollout restart]
         A2 --> A3[Pod pulls latest from Artifactory]
         A3 --> A4[Cluster in integrity]
@@ -18,7 +18,7 @@ flowchart TB
         C5 --> C6[JFrog Runtime: Integrity Violation]
     end
 
-    subgraph Clear["4. Clear Violation"]
+    subgraph Sync2["4. Sync with Artifactory (clear)"]
         D1[Set imagePullPolicy: Always] --> D2[kubectl rollout restart]
         D2 --> D3[Pod pulls fresh from Artifactory]
         D3 --> D4[Cluster in integrity]

@@ -1,8 +1,9 @@
-# Integrity Demo — Reset: set imagePullPolicy Always, redeploy (cluster in sync with Artifactory).
+# Integrity Demo — Sync with Artifactory / Reset: set imagePullPolicy Always, redeploy (cluster in sync).
+# Use at start (optional) or after Trigger to clear violation.
 # Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN (SSO); vars per AGENTS.md
 # See docs/integrity-violation-workflow.mmd and AGENTS.md
 
-name: 'Integrity Demo — Reset'
+name: 'Integrity Demo — Sync with Artifactory / Reset'
 
 on:
   workflow_dispatch:
