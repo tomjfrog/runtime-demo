@@ -8,7 +8,13 @@ IMAGE="${IMAGE:-danielw.jfrog.io/runtimedemo-integrity-demo-app-docker-dev/integ
 DEPLOYMENT="${DEPLOYMENT:-integrity-demo-app}"
 NAMESPACE="${NAMESPACE:-runtime-demo}"
 
+# Remove locally-cached integrity-demo-app images so we pull fresh from Artifactory
+IMAGE_REPO="${IMAGE%:*}"
 echo "=== Integrity Violation Validation ==="
+echo "Removing locally-cached $IMAGE_REPO images..."
+for img in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${IMAGE_REPO}" 2>/dev/null); do
+  docker rmi -f "$img" 2>/dev/null || true
+done
 echo ""
 
 K8S=$(kubectl exec -n "$NAMESPACE" deployment/"$DEPLOYMENT" -- cat /app/build_id.txt 2>/dev/null | tr -d '\n') || {
