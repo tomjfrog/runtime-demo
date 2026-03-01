@@ -1,13 +1,16 @@
-# Builds the runtime-demo-app Docker image and pushes to JFrog Artifactory.
-# Requires GitHub vars per AGENTS.md
+# Builds the integrity-demo-app Docker image and pushes to JFrog Artifactory.
+# Requires GitHub vars per AGENTS.md (IMAGE_NAME=integrity-demo-app)
 # Uses JFrog OIDC integration (oidc-provider-name: github-oidc-integration, oidc-audience: jfrog-github)
 
-name: 'Build and Deploy to Artifactory'
+name: 'Build and Deploy integrity-demo-app to Artifactory'
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'integrity-demo-app/**'
+      - '.github/workflows/build-deploy-artifactory.yml'
 
 permissions:
   id-token: write
@@ -16,9 +19,9 @@ permissions:
 
 env:
   IMAGE_METADATA_FILE: 'image-metadata'
-  BUILD_NAME: 'runtime-demo-app-build'
-  DOCKER_REPOSITORY: ${{ vars.DOCKER_REPOSITORY }}
-  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+  BUILD_NAME: 'integrity-demo-app-build'
+  DOCKER_REPOSITORY: runtimedemo-integrity-demo-app-docker-dev
+  IMAGE_NAME: integrity-demo-app
 
 jobs:
   build-and-push:
@@ -54,8 +57,8 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./integrity-demo-app
+          file: ./integrity-demo-app/Dockerfile
           build-args: |
             UNIQUE_VALUE=${{ steps.unique.outputs.value }}
           push: true
