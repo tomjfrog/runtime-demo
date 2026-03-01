@@ -38,6 +38,9 @@ jobs:
             --region ${{ vars.AWS_REGION }} \
             --name ${{ vars.EKS_CLUSTER_NAME }}
 
+      - name: Apply namespace if not already exists
+        run: kubectl apply -f k8s/namespace.yaml
+
       - name: Set IfNotPresent
         run: |
           kubectl patch deployment ${{ env.K8S_DEPLOYMENT }} -n ${{ env.K8S_NAMESPACE }} \
