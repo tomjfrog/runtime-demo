@@ -70,7 +70,7 @@ jobs:
       - name: Attest Docker Image with Build Provenance
         uses: actions/attest-build-provenance@v3
         with:
-          subject-name: oci://${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME}}:${{ env.VERSION }}
+          subject-name: oci://${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME}}:${{ steps.unique.outputs.value }}
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
           push-to-registry: true
     
