@@ -44,7 +44,7 @@ jobs:
           JF_URL: ${{ vars.JF_URL }}
           JF_PROJECT: ${{ vars.JF_PROJECT }}
         with:
-          version: 'latest'
+          version: 2.93.0
           oidc-provider-name: 'github-oidc-integration'
           oidc-audience: 'jfrog-github'
           disable-auto-build-publish: true
