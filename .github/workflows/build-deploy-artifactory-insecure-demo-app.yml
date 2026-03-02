@@ -64,20 +64,17 @@ jobs:
           context: ${{ github.workspace }}/insecure-demo-app
           file: ${{ github.workspace }}/insecure-demo-app/Dockerfile
           provenance: true
-          platforms: |
-            linux/amd64
-            linux/arm64
+          platforms: linux/amd64,linux/arm64
           build-args: |
             UNIQUE_VALUE=${{ steps.unique.outputs.value }}
           push: true
           tags: |
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
-            ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Attest Docker Image with Build Provenance
         uses: actions/attest-build-provenance@v3
         with:
-          subject-name: oci://${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
+          subject-name: oci://${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build-and-push.outputs.digest }}
           push-to-registry: true
     
