@@ -53,6 +53,7 @@ jobs:
           username: ${{ steps.jfrog-cli.outputs.oidc-user }}
           password: ${{ steps.jfrog-cli.outputs.oidc-token }}
 
+
       - name: Build and push
         id: build-and-push
         uses: docker/build-push-action@v6
@@ -66,6 +67,13 @@ jobs:
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}
             ${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Attest Docker Image with Build Provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: oci://${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME}}:${{ env.VERSION }}
+          subject-digest: ${{ steps.build-and-push.outputs.digest }}
+          push-to-registry: true
+    
       - name: Create Image Metadata File
         run: |
           echo "${{ vars.JF_DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ steps.unique.outputs.value }}@${{ steps.build-and-push.outputs.digest }}" > ${{ env.IMAGE_METADATA_FILE }}
