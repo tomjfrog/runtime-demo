@@ -337,9 +337,41 @@ Set `imagePullPolicy: IfNotPresent` so the pod will use cached images on redeplo
 
 Same as step 1. Run the Sync workflow or manually set `imagePullPolicy: Always`, apply, and redeploy. The pod pulls the latest image from Artifactory; the integrity violation clears.
 
+### Listing Cached Images on the Pinned Node
+
+To inspect which container images are cached on the node (e.g. before/after Trigger):
+
+```bash
+./scripts/list-node-cached-images.sh
+```
+
+Uses `kubectl debug` to run `ctr -n k8s.io images ls` on the node. Override the node with `NODE=ip-192-168-25-22.us-east-2.compute.internal ./scripts/list-node-cached-images.sh` if needed.
+
 ### Why Node Affinity Matters
 
 With multiple nodes, a restarted pod may land on a different node that does not have the image cached. That node would pull the new image, so no violation would occur. Node affinity ensures the pod always schedules on the same node (e.g. `ip-192-168-63-72.us-east-2.compute.internal`), so with `IfNotPresent` it reuses the cached old image after you push a new one to Artifactory.
+
+### Running the Demo Locally (No GitHub Actions)
+
+To run the entire integrity violation demo with local tools:
+
+```bash
+# One-time: ensure AWS SSO, kubeconfig, and Artifactory auth
+aws sso login --profile $(cat aws-profile)
+aws eks update-kubeconfig --region us-east-2 --name demo-cluster --profile $(cat aws-profile)
+docker login danielw.jfrog.io   # or: jf docker login
+export JFROG_ACCESS_TOKEN="<token>"
+./scripts/create-artifactory-secret.sh   # creates imagePullSecrets in runtime-demo
+
+# Run the full demo (Reset → Setup → Trigger → Verify)
+./scripts/run-integrity-demo-local.sh
+```
+
+**Options:**
+- `SKIP_RESET=1` — Skip initial Reset (if cluster already in sync)
+- `SKIP_VERIFY=1` — Skip the final validation script
+
+**Overrides:** `AWS_PROFILE`, `AWS_REGION`, `EKS_CLUSTER`, `JF_REGISTRY`, `DOCKER_REPO`, `IMAGE_NAME`, `K8S_NAMESPACE`, `K8S_DEPLOYMENT`
 
 ### GitHub Actions (separate workflows per stage)
 
