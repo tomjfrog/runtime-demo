@@ -91,7 +91,7 @@ jobs:
 
       - name: Gather Build Info Metadata
         run: |
-          jf rt build-collect-env --project${{ vars.JF_PROJECT }} ${{ env.BUILD_NAME }} ${{ github.run_number }}
+          jf rt build-collect-env --project ${{ vars.JF_PROJECT }} ${{ env.BUILD_NAME }} ${{ github.run_number }}
           jf rt bag ${{ env.BUILD_NAME }} ${{ github.run_number }}
 
       - name: Publish Build Info
