@@ -89,6 +89,15 @@ jobs:
             --build-number=${{ github.run_number }} \
             --image-file ${{ env.IMAGE_METADATA_FILE }}
 
+      - name: Gather Build Info Metadata
+        run: |
+          jf rt build-collect-env --project${{ vars.JF_PROJECT }} ${{ env.BUILD_NAME }} ${{ github.run_number }}
+          jf rt bag ${{ env.BUILD_NAME }} ${{ github.run_number }}
+
       - name: Publish Build Info
         run: |
-          jf rt build-publish ${{ env.BUILD_NAME }} ${{ github.run_number }}
+          jf rt build-publish \
+          --project=${{ vars.JF_PROJECT }} \
+          --collect-env \
+          --collect-git-info \
+          ${{ env.BUILD_NAME }} ${{ github.run_number }}
