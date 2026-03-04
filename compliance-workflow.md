@@ -14,6 +14,42 @@ Each step links to the next via image digests (SHA256), tags, and build metadata
 
 ---
 
+## Automated Validation Script
+
+**`scripts/compliance-check.py`** automates this entire workflow end-to-end. It runs all API calls in sequence, prints step-by-step results with ✅/❌ indicators, and finishes with a structured compliance report.
+
+**Prerequisites:** Python 3.8+, `pip install requests`, and a valid access token in `access-token.txt`.
+
+```bash
+# Run from the project root (where access-token.txt lives)
+python3 scripts/compliance-check.py
+
+# Override image or cluster
+python3 scripts/compliance-check.py --image integrity-demo-app --cluster tomj-lab-cluster
+
+# All options can also be set via environment variables
+IMAGE_NAME=integrity-demo-app BUILD_NAME=integrity-demo-app-build python3 scripts/compliance-check.py
+```
+
+**CLI arguments** (all optional — defaults match this environment):
+
+| Argument | Env var | Default |
+|---|---|---|
+| `--image` | `IMAGE_NAME` | `insecure-demo-app` |
+| `--cluster` | `CLUSTER_NAME` | `tomj-lab-cluster` |
+| `--build-name` | `BUILD_NAME` | `insecure-demo-app-build` |
+| `--project` | `PROJECT_KEY` | `runtimedemo` |
+| `--jf-url` | `JF_URL` | `https://danielw.jfrog.io` |
+| `--token-file` | `JF_TOKEN_FILE` | `access-token.txt` |
+
+**Exit codes:** `0` = compliant, `1` = non-compliant, `2` = script error (auth failure, image not found, etc.)
+
+The script is CI-friendly — the non-zero exit code on failure makes it suitable for use as a gate in automated pipelines.
+
+The manual steps below document the individual API calls for reference and troubleshooting.
+
+---
+
 ## Step 1: Enumerate Runtime Clusters
 
 **Purpose:** Identify all monitored Kubernetes clusters and their health status.
