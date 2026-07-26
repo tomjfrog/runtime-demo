@@ -43,7 +43,6 @@ jobs:
         with:
           version: 'latest'
           oidc-provider-name: 'github-oidc-integration'
-          oidc-audience: 'jfrog-github'
           disable-auto-build-publish: true
 
       - name: Docker Login
